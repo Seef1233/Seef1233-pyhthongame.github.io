@@ -53,8 +53,8 @@ def game_loop():
     while not game_over:
         while game_close:
             window.fill(black)
-            display_message(f"Game over !  {length - 1} ", red, 150, height / 2 - 20)
-            display_message("herstarten R of Q voor afsluiten ", red, 100, height / 2 + 20)
+            display_message("R voor herstarten", red, width // 2 - 80, height // 2 - 20)
+            display_message("Q voor afsluiten", red, width // 2 - 80, height // 2 + 10)
             pygame.display.update()
 
             for event in pygame.event.get():
@@ -108,14 +108,14 @@ def game_loop():
         for segment in snake_body:
             pygame.draw.rect(window, blue, [segment[0], segment[1], block_size, block_size])
 
-        display_message(f": score {length - 1}", white, 10, 10)
+        display_message(f"score {length - 1}", white, 10, 10)
 
         # حساب الوقت المتبقي
         time_elapsed = time.time() - start_time
         time_remaining = time_limit - int(time_elapsed)
 
         if time_remaining > 0:
-            display_message(f"rest tijd: {time_remaining} Seconden", white, width - 200, 10)
+         display_message(f"Resterende tijd: {time_remaining} " , white, width -250, 10,  )
         else:
             game_close = True
             display_message("Game over", red, 100, height / 2 + 40)
