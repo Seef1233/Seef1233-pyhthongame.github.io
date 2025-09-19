@@ -2,59 +2,94 @@ import pygame
 import time
 import random
 
-# إعداد الألوان
-white = (255, 255, 255)
-black = (0, 0, 0)
-red = (213, 50, 80)
-green = (0, 255, 0)
-blue = (50, 153, 213)
+# Colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+RED = (213, 50, 80)
+GREEN = (0, 255, 0)
+BLUE = (50, 153, 213)
 
-# إعدادات النافذة
-width = 600
-height = 400
+# Window settings
+SCREEN_WIDTH = 600
+SCREEN_HEIGHT = 400
 
-# حجم المربع في الثعبان
-block_size = 10
-speed = 15
+# Snake settings
+BLOCK_SIZE = 10
+SPEED = 15
 
-# تهيئة اللعبة
+# Initialize pygame
 pygame.init()
-font = pygame.font.SysFont("bahnschrift", 25)
-clock = pygame.time.Clock()
+FONT = pygame.font.SysFont("bahnschrift", 25)
+CLOCK = pygame.time.Clock()
 
-# إنشاء النافذة
-window = pygame.display.set_mode((width, height))
-pygame.display.set_caption("Slang speel")
+# Create window
+window = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+pygame.display.set_caption("Snake Game")
 
+# Initialize joystick (if available)
+pygame.joystick.init()
+joystick_count = pygame.joystick.get_count()
+if joystick_count > 0:
+    joystick = pygame.joystick.Joystick(0)
+    joystick.init()
 
+# Display text on screen
 def display_message(msg, color, x, y):
-    text = font.render(msg, True, color)
+    text = FONT.render(msg, True, color)
     window.blit(text, [x, y])
 
+class Snake:
+    """Represents the snake in the game, including movement and growth."""
 
+    def __init__(self):
+        self.body = []
+        self.length = 1
+        self.x = SCREEN_WIDTH / 2
+        self.y = SCREEN_HEIGHT / 2
+        self.dx = 0
+        self.dy = 0
+
+    def move(self):
+        """Move the snake in the current direction."""
+        self.x += self.dx
+        self.y += self.dy
+        self.body.append([self.x, self.y])
+        if len(self.body) > self.length:
+            del self.body[0]  # Remove oldest segment to keep correct length
+
+    def draw(self, window):
+        """Draw the snake on the window."""
+        for segment in self.body:
+            pygame.draw.rect(window, BLUE, [segment[0], segment[1], BLOCK_SIZE, BLOCK_SIZE])
+
+class Food:
+    """Represents the food the snake can eat."""
+
+    def __init__(self):
+        self.x = random.randrange(0, SCREEN_WIDTH - BLOCK_SIZE, BLOCK_SIZE)
+        self.y = random.randrange(0, SCREEN_HEIGHT - BLOCK_SIZE, BLOCK_SIZE)
+
+    def draw(self, window):
+        """Draw the food on the window."""
+        pygame.draw.rect(window, GREEN, [self.x, self.y, BLOCK_SIZE, BLOCK_SIZE])
+
+# Main game loop
 def game_loop():
     game_over = False
     game_close = False
 
-    x = width / 2
-    y = height / 2
-    dx = 0
-    dy = 0
+    snake = Snake()
+    food = Food()
 
-    snake_body = []
-    length = 1
-
-    food_x = random.randrange(0, width - block_size, block_size)
-    food_y = random.randrange(0, height - block_size, block_size)
-
-    start_time = time.time()  # Starttijd om bij te houden wanneer de slang voor het laatst gegeten heeft
-    time_limit = 20  # Tijdslimiet in seconden (20 seconden)
+    start_time = time.time()  # Track when the snake last ate
+    time_limit = 20  # Time limit in seconds
 
     while not game_over:
         while game_close:
-            window.fill(black)
-            display_message("R voor herstarten", red, width // 2 - 80, height // 2 - 20)
-            display_message("Q voor afsluiten", red, width // 2 - 80, height // 2 + 10)
+            window.fill(BLACK)
+            display_message("Game Over", RED, SCREEN_WIDTH // 2 - 50, SCREEN_HEIGHT // 2 - 40)
+            display_message("R: Restart", GREEN, SCREEN_WIDTH // 2 - 80, SCREEN_HEIGHT // 2 - 10)
+            display_message("Q: Quit", RED, SCREEN_WIDTH // 2 - 80, SCREEN_HEIGHT // 2 + 15)
             pygame.display.update()
 
             for event in pygame.event.get():
@@ -70,68 +105,76 @@ def game_loop():
                 game_over = True
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_LEFT:
-                    dx = -block_size
-                    dy = 0
+                    snake.dx = -BLOCK_SIZE
+                    snake.dy = 0
                 elif event.key == pygame.K_RIGHT:
-                    dx = block_size
-                    dy = 0
+                    snake.dx = BLOCK_SIZE
+                    snake.dy = 0
                 elif event.key == pygame.K_UP:
-                    dx = 0
-                    dy = -block_size
+                    snake.dx = 0
+                    snake.dy = -BLOCK_SIZE
                 elif event.key == pygame.K_DOWN:
-                    dx = 0
-                    dy = block_size
+                    snake.dx = 0
+                    snake.dy = BLOCK_SIZE
 
-        x += dx
-        y += dy
+            # Handle joystick input (if available)
+            if joystick_count > 0:
+                x_axis = joystick.get_axis(0)
+                y_axis = joystick.get_axis(1)
 
-        if x >= width or x < 0 or y >= height or y < 0:
+                if x_axis < -0.5:  # Left
+                    snake.dx = -BLOCK_SIZE
+                    snake.dy = 0
+                elif x_axis > 0.5:  # Right
+                    snake.dx = BLOCK_SIZE
+                    snake.dy = 0
+                elif y_axis < -0.5:  # Up
+                    snake.dx = 0
+                    snake.dy = -BLOCK_SIZE
+                elif y_axis > 0.5:  # Down
+                    snake.dx = 0
+                    snake.dy = BLOCK_SIZE
+
+        snake.move()
+
+        # Check wall collision
+        if snake.x >= SCREEN_WIDTH or snake.x < 0 or snake.y >= SCREEN_HEIGHT or snake.y < 0:
             game_close = True
 
-        window.fill(black)
-        pygame.draw.rect(window, green, [food_x, food_y, block_size, block_size])
-        pygame.draw.rect(window, blue, [0, 0, width, block_size])  # جدار علوي
-        pygame.draw.rect(window, blue, [0, height - block_size, width, block_size])  # جدار سفلي
-        pygame.draw.rect(window, blue, [0, 0, block_size, height])  # جدار يساري
-        pygame.draw.rect(window, blue, [width - block_size, 0, block_size, height])  # جدار يميني
+        window.fill(BLACK)
+        food.draw(window)
 
-        snake_head = [x, y]
-        snake_body.append(snake_head)
+        # Draw walls
+        pygame.draw.rect(window, BLUE, [0, 0, SCREEN_WIDTH, BLOCK_SIZE])  # Top wall
+        pygame.draw.rect(window, BLUE, [0, SCREEN_HEIGHT - BLOCK_SIZE, SCREEN_WIDTH, BLOCK_SIZE])  # Bottom wall
+        pygame.draw.rect(window, BLUE, [0, 0, BLOCK_SIZE, SCREEN_HEIGHT])  # Left wall
+        pygame.draw.rect(window, BLUE, [SCREEN_WIDTH - BLOCK_SIZE, 0, BLOCK_SIZE, SCREEN_HEIGHT])  # Right wall
 
-        if len(snake_body) > length:
-            del snake_body[0]
+        snake.draw(window)
 
-        for segment in snake_body[:-1]:
-            if segment == snake_head:
-                game_close = True
-
-        for segment in snake_body:
-            pygame.draw.rect(window, blue, [segment[0], segment[1], block_size, block_size])
-
-        display_message(f"score {length - 1}", white, 10, 10)
-
-        # حساب الوقت المتبقي
+        # Countdown timer
         time_elapsed = time.time() - start_time
         time_remaining = time_limit - int(time_elapsed)
 
+        display_message(f"Score: {snake.length - 1}", WHITE, 10, 10)
+
         if time_remaining > 0:
-         display_message(f"Resterende tijd: {time_remaining} " , white, width -250, 10,  )
+            display_message(f"Time Left: {time_remaining}", WHITE, SCREEN_WIDTH - 200, 10)
         else:
             game_close = True
-            display_message("Game over", red, 100, height / 2 + 40)
+            display_message("Game Over", RED, 100, SCREEN_HEIGHT / 2 + 40)
 
         pygame.display.update()
 
-        if x == food_x and y == food_y:
-            food_x = random.randrange(0, width - block_size, block_size)
-            food_y = random.randrange(0, height - block_size, block_size)
-            length += 1
-            start_time = time.time()  # Reset de timer bij het eten van voedsel
+        # Snake eats food
+        if snake.x == food.x and snake.y == food.y:
+            food = Food()  # Generate new food
+            snake.length += 1
+            start_time = time.time()  # Reset timer
 
-        clock.tick(speed)
+        CLOCK.tick(SPEED)
 
     pygame.quit()
     quit()
-
 
 game_loop()
